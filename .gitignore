@@ -1,0 +1,10 @@
+classification_result/
+preprocessed_output/
+segmentation_result/
+work/
+/classification/ckpt
+/classification/log
+/classification/logs
+/segmentation/dataset
+/segmentation/segmentation_result
+

@@ -1,0 +1,30 @@
+--extra-index-url https://download.pytorch.org/whl/torch_stable.html
+
+# Core dependencies
+torch==1.13.1+cu117
+torchvision==0.14.1+cu117
+tensorboard
+nibabel
+tqdm
+
+# picai-prep and eval for preprocessing + evaluation
+picai-prep==2.1.2
+picai_eval==1.4.4
+
+# Scientific packages for preprocessing and metrics
+numpy>=1.21,<1.25
+scikit-image>=0.20.0
+h5py==3.10.0
+scikit-learn
+scipy
+SimpleITK
+pydicom
+
+# Model-specific (ITUNet) + utilities
+efficientnet_pytorch
+einops
+jsonschema
+
+# NVFlare for federated learning
+nvflare==2.5.1
+

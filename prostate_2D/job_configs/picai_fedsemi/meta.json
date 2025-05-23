@@ -1,0 +1,12 @@
+{
+  "name": "picai_fedsemi",
+  "resource_spec": {
+    "site-1": { "num_of_gpus": 1 },
+    "site-2": { "num_of_gpus": 1 },
+    "server": { "num_of_gpus": 1 }
+  },
+  "deploy_map": {
+    "app": ["@ALL"]
+  }
+}
+
