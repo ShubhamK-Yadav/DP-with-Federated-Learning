@@ -297,9 +297,8 @@ class SemanticSeg(object):
                 # Add noise and apply gradients
                 for j, p in enumerate(net.parameters()):
                     if p.requires_grad:
-                        accumulated_grads[j] /= batch_size
                         noise = torch.normal(mean=0.0, std=sigma, size=accumulated_grads[j].shape, device=p.device)
-                        p.grad = accumulated_grads[j] + noise
+                        p.grad = (accumulated_grads[j] + noise) / batch_size
 
                 if step % 10 == 0:
                     final_grad_norm = torch.sqrt(sum((p.grad.norm(2) ** 2 for p in net.parameters() if p.grad is not None)))
