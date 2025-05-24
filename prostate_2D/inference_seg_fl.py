@@ -48,32 +48,67 @@ def run_inference(model, test_dir, output_dir, device):
         arrays = [sitk.GetArrayFromImage(im) for im in imgs]
         image_np = np.stack(arrays)  # [3, D, H, W]
 
-        pred_mask = np.zeros(image_np.shape[1:], dtype=np.uint8)      # [D, H, W]
-        softmax_volume = np.zeros((2, *image_np.shape[1:]), dtype=np.float32)  # [C, D, H, W]
-
+        pred_mask = np.zeros(image_np.shape[1:], dtype=np.uint8)  # [D, H, W]
         for i in range(image_np.shape[1]):
             input_slice = image_np[:, i, :, :]
-            input_tensor = torch.tensor(input_slice.astype(np.float32)).unsqueeze(0).to(device)  # [1, 3, H, W]
+            input_tensor = torch.tensor(input_slice.astype(np.float32)).unsqueeze(0).to(device)
 
             with torch.no_grad():
                 output = model(input_tensor)
                 if isinstance(output, (list, tuple)):
                     output = output[0]
-                softmax_output = torch.softmax(output, dim=1)  # [1, C, H, W]
-                softmax_np = softmax_output.squeeze(0).cpu().numpy()  # [C, H, W]
+                pred = torch.argmax(output, dim=1).squeeze(0).cpu().numpy()
 
-            pred_mask[i] = np.argmax(softmax_np, axis=0)
-            softmax_volume[:, i, :, :] = softmax_np  # accumulate [C, H, W] at [C, D, H, W]
+            pred_mask[i] = pred
 
-        # Save segmentation prediction
-        pred_path = os.path.join(output_dir, f"{subject_id}.npy")
-        np.save(pred_path, pred_mask)
-        print(f"[INFO] Saved prediction: {pred_path}")
+        output_path = os.path.join(output_dir, f"{subject_id}.npy")
+        np.save(output_path, pred_mask)
+        print(f"[INFO] Saved prediction: {output_path}")
 
-        # Save softmax probability map
-        probs_path = os.path.join(output_dir, f"{subject_id}_probs.npy")
-        np.save(probs_path, softmax_volume)
-        print(f"[INFO] Saved softmax probabilities: {probs_path}")
+def run_inference_softmax(model, test_dir, output_dir, device):
+    os.makedirs(output_dir, exist_ok=True)
+
+    for file in tqdm(sorted(os.listdir(test_dir))):
+        if not file.endswith("_0000.nii.gz"):
+            continue
+
+        subject_id = file.replace("_0000.nii.gz", "")
+        paths = [os.path.join(test_dir, f"{subject_id}_{i:04d}.nii.gz") for i in range(3)]
+
+        if not all(os.path.exists(p) for p in paths):
+            print(f"[WARN] Missing modalities for {subject_id}, skipping.")
+            continue
+
+        imgs = [sitk.ReadImage(p) for p in paths]
+        arrays = [sitk.GetArrayFromImage(im).astype(np.float32) for im in imgs]
+        image_np = np.stack(arrays)  # [3, D, H, W]
+
+        C, D, H, W = 2, image_np.shape[1], image_np.shape[2], image_np.shape[3]
+        volume = np.zeros((C, D, H, W), dtype=np.float32)
+
+        for i in range(D):
+            input_slice = image_np[:, i, :, :].copy()  # [3, H, W]
+
+            # Normalize each modality (channel) individually
+            for c in range(input_slice.shape[0]):
+                max_val = np.max(input_slice[c])
+                if max_val != 0:
+                    input_slice[c] = input_slice[c] / max_val
+
+            input_tensor = torch.tensor(input_slice).unsqueeze(0).to(device)  # [1, 3, H, W]
+
+            with torch.no_grad():
+                output = model(input_tensor)
+                if isinstance(output, (list, tuple)):
+                    output = output[0]
+                softmax = torch.softmax(output, dim=1).squeeze(0).cpu().numpy()  # [C, H, W]
+
+            volume[:, i, :, :] = softmax
+
+        output_path = os.path.join(output_dir, f"{subject_id}.npy")
+        np.save(output_path, volume)
+        print(f"[INFO] Saved softmax prediction: {output_path}")
+
 
 
 def main():
@@ -89,7 +124,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(model_path, device)
     print("Model loaded. Starting inference...")
-    run_inference(model, args.test_dir, args.output_dir, device)
+    run_inference_softmax(model, args.test_dir, args.output_dir, device)
 
 if __name__ == "__main__":
     main()
