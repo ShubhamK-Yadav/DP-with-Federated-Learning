@@ -1,17 +1,15 @@
-import os
 import SimpleITK as sitk
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import h5py
 import random
+import os
 
 def save_as_hdf5(data, save_path, key):
-    with h5py.File(save_path, 'a') as hdf5_file:
-        if key in hdf5_file:
-            del hdf5_file[key]  # Remove existing dataset
-        hdf5_file.create_dataset(key, data=data)
-        hdf5_file.close()
+    hdf5_file = h5py.File(save_path, 'a')
+    hdf5_file.create_dataset(key, data=data)
+    hdf5_file.close()
 
 def csv_reader_single(csv_file,key_col=None,value_col=None):
     '''
@@ -121,9 +119,12 @@ def make_semidata(base_dir,label_dir,output_dir,test_dir,seg_dir,csv_path):
     print(rand_list)
 
     for path in tqdm(pathlist_test_dir):
-        seg_image = np.load(os.path.join(seg_dir,path + '.npy')).astype(np.uint8)
+        # seg_image = np.load(os.path.join(seg_dir,path + '.npy')).astype(np.uint8)
 
-        seg_image *= int(label_dict[path])
+        # seg_image *= int(label_dict[path])
+        seg_soft = np.load(os.path.join(seg_dir, path + '.npy'))
+        seg_image = np.argmax(seg_soft, axis=0).astype(np.uint8)  # shape: [D, H, W]
+        seg_image *= int(label_dict[path])  # Apply binary label from CSV
 
         in_1 = sitk.ReadImage(os.path.join(test_dir,path + '_0000.nii.gz'))
         in_2 = sitk.ReadImage(os.path.join(test_dir,path + '_0001.nii.gz'))
@@ -177,10 +178,10 @@ def make_semidata(base_dir,label_dir,output_dir,test_dir,seg_dir,csv_path):
 
 if __name__ == "__main__":
     phase = 'detect'
-    base_dir = '/path/to/preprocessed_output/nnUNet_raw_data/Task2201_picai_baseline/imagesTr'
-    label_dir = '/path/to/preprocessed_output/nnUNet_raw_data/Task2201_picai_baseline/labelsTr'
-    output_dir = '/path/to/preprocessed_output/segmentation/detectdata'
-    test_dir = '/path/to/preprocessed_output/nnUNet_test_data'
+    base_dir = '/path/to/nnUNet_raw_data/Task2201_picai_baseline/imagesTr'
+    label_dir = '/path/to/nnUNet_raw_data/Task2201_picai_baseline/labelsTr'
+    output_dir = '/path/to/segmentation/detectdata'
+    test_dir = '/path/to/nnUNet_test_data'
     seg_dir = '/path/to/segmentation_result'
     csv_path = '/path/to/classification_result/test_3c.csv'
     if phase == 'seg':
