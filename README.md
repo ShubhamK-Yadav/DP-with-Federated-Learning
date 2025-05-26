@@ -67,3 +67,5 @@ After training completes, you’ll get FL_global_model.pt from the server within
 python prostate_2D/inference_seg_fl.py
 ```
 This generates predictions needed for the detection phase of the challenge. Use the output for the detection phase mentioned in [ITUNet-for-PICAI-2022-Challenge](https://github.com/Yukiya-Umimi/ITUNet-for-PICAI-2022-Challenge/tree/main/segmentation)
+
+Results can be found in: https://docs.google.com/spreadsheets/d/1wgrYRIKwuNpygzsmzGCRTxYIjiLHE7zkHQ2r2-lQkQA/edit?usp=sharing
