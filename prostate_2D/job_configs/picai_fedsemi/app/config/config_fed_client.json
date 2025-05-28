@@ -11,8 +11,8 @@
         "n_channels": 3,
         "n_classes": 2,
         "image_size": 384,
-        "split_file": "/users/aca21sky/prostate/split.json",
-        "data_root": "/mnt/parscratch/users/aca21sky/preprocessed_output/segmentation/segdata/data_2d",
+        "split_file": "path/to/split.json",
+        "data_root": "path/to/preprocessed_output/segmentation/segdata/data_2d",
         
         "dp_clip": 1.0,
         "dp_total_epsilon": 20.0,
