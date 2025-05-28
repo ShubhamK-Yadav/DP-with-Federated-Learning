@@ -52,8 +52,14 @@ class SemiSupervisedLearner(Learner, ModelLearner):
         self.output_dir = os.path.join(app_dir, "checkpoints", site_id)
 
         self.C = self.config.get("dp_clip", 1.0)                # Gradient clipping norm
-        self.epsilon = self.config.get("dp_epsilon", 1.0)       # Privacy budget
         self.delta = self.config.get("dp_delta", 1e-5)          # Failure probability
+        self.total_epsilon = self.config.get("dp_total_epsilon", 1.0)       # Privacy budget
+        self.total_rounds = self.config.get("dp_total_rounds", 50)
+        self.epsilon = self.total_epsilon / (
+            np.sqrt(2 * self.total_rounds * np.log(1 / self.delta)) +
+            self.total_rounds * (np.exp(1) - 1)
+        )
+
         self.L = 1                                              # One communication round per client per round
 
         self.round_num = 0
@@ -108,7 +114,7 @@ class SemiSupervisedLearner(Learner, ModelLearner):
         self.model = seg_model.net
         global_weights = from_shareable(shareable).data
         local_weights = self.model.state_dict()
-        
+
         sensitivity = 2 * self.C / m
         c = np.sqrt(2 * np.log(1.25 / self.delta))
         epsilon_actual = (c * self.L * sensitivity) / sigma
@@ -119,6 +125,8 @@ class SemiSupervisedLearner(Learner, ModelLearner):
         # Use strong composition to estimate cumulative ε
         epsilon_composed = strong_composition(epsilon_actual, self.delta, self.round_num + 1)
         print(f"  → Estimated cumulative ε after {self.round_num + 1} rounds (strong composition): {epsilon_composed:.4f}")
+
+        print(f"  → Target global ε after {self.total_rounds} rounds: {self.total_epsilon}")
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         dp_log_path = os.path.join(self.log_dir, "dp_accounting_log.txt")
